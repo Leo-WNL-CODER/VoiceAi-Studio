@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 const SITE_URL = "https://voice-ai-studio-five.vercel.app";
 
 export const metadata: Metadata = {
+  verification: {
+    google: "RW3Sl6dlr78xaBa3nIfRZu8IVnR-VPvEAfp-nrzPXH8",
+  },
   title: {
     default: "VoiceAI Studio - AI Text to Speech Generator & Voice Cloning",
     template: "%s | VoiceAI Studio",
