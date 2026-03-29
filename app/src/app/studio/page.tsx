@@ -38,29 +38,34 @@ export default function StudioPage() {
     setCharCount(script.length);
   }, [script]);
 
-  // Load usage data
+  // Sync user first, then load usage and voices
   useEffect(() => {
-    fetch("/api/usage")
-      .then((res) => res.json())
-      .then((data) => {
+    async function init() {
+      // Step 1: Ensure user exists in Supabase
+      await fetch("/api/user").catch(() => {});
+
+      // Step 2: Load usage and voices in parallel
+      const [usageRes, voicesRes] = await Promise.all([
+        fetch("/api/usage").catch(() => null),
+        fetch("/api/voices/clone").catch(() => null),
+      ]);
+
+      if (usageRes) {
+        const data = await usageRes.json();
         if (data.tier) setTier(data.tier);
         if (typeof data.generationsUsed === "number") setGenerationsUsed(data.generationsUsed);
         if (typeof data.generationsLimit === "number") setGenerationsLimit(data.generationsLimit);
-      })
-      .catch(() => {});
-  }, []);
+      }
 
-  // Sync user and load cloned voices
-  useEffect(() => {
-    fetch("/api/user").catch(() => {});
-    fetch("/api/voices/clone")
-      .then((res) => res.json())
-      .then((data) => {
+      if (voicesRes) {
+        const data = await voicesRes.json();
         if (data.voices?.length > 0) {
           setClonedVoice(data.voices[0]);
         }
-      })
-      .catch(() => {});
+      }
+    }
+
+    init();
   }, [setClonedVoice]);
 
   useEffect(() => {

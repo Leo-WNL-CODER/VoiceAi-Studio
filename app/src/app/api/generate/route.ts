@@ -130,15 +130,19 @@ export async function POST(req: NextRequest) {
 
     const audioBuffer = await response.arrayBuffer();
 
-    // Save generation history
-    supabaseAdmin.from("generations").insert({
+    // Save generation history (must succeed for limit tracking)
+    const { error: insertError } = await supabaseAdmin.from("generations").insert({
       user_id: user.id,
       script: text.substring(0, 5000),
       voice_id: voiceId || elVoiceId,
       voice_name: voiceName || voiceId,
       language: language || "en",
       character_count: text.length,
-    }).then(() => {});
+    });
+
+    if (insertError) {
+      console.error("Failed to save generation:", insertError);
+    }
 
     return new NextResponse(audioBuffer, {
       headers: {
