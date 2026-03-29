@@ -9,7 +9,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's subscription tier
     const { data: userData } = await supabaseAdmin
       .from("users")
       .select("subscription_tier")
@@ -17,21 +16,39 @@ export async function GET() {
       .single();
 
     const tier = userData?.subscription_tier || "free";
+    const isPro = tier === "pro" || tier === "business";
 
-    // Count today's generations
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    if (!isPro) {
+      // Free: count lifetime total
+      const { count: totalCount } = await supabaseAdmin
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-    const { count } = await supabaseAdmin
-      .from("generations")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("created_at", todayStart.toISOString());
+      return NextResponse.json({
+        tier,
+        generationsUsed: totalCount || 0,
+        generationsLimit: 5,
+        limitType: "lifetime",
+      });
+    } else {
+      // Pro/Business: count today
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
 
-    return NextResponse.json({
-      tier,
-      generationsToday: count || 0,
-    });
+      const { count: dailyCount } = await supabaseAdmin
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString());
+
+      return NextResponse.json({
+        tier,
+        generationsUsed: dailyCount || 0,
+        generationsLimit: tier === "business" ? 200 : 50,
+        limitType: "daily",
+      });
+    }
   } catch (error) {
     console.error("Usage check error:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

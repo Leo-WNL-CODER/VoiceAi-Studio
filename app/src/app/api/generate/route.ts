@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid voice ID" }, { status: 400 });
     }
 
-    // Check daily generation limit
+    // Check generation limits
     const { data: userData } = await supabaseAdmin
       .from("users")
       .select("subscription_tier")
@@ -51,21 +51,38 @@ export async function POST(req: NextRequest) {
 
     const tier = userData?.subscription_tier || "free";
     const limits = getPlanLimits(tier);
+    const isPro = tier === "pro" || tier === "business";
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    if (!isPro) {
+      // Free tier: check lifetime total
+      const { count: totalCount } = await supabaseAdmin
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-    const { count } = await supabaseAdmin
-      .from("generations")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("created_at", todayStart.toISOString());
+      if ((totalCount || 0) >= limits.maxGenerationsTotal) {
+        return NextResponse.json(
+          { error: `You've used all ${limits.maxGenerationsTotal} free generations. Upgrade to Pro for unlimited access.` },
+          { status: 429 }
+        );
+      }
+    } else {
+      // Pro/Business: check daily limit
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
 
-    if ((count || 0) >= limits.maxGenerationsPerDay) {
-      return NextResponse.json(
-        { error: `Daily generation limit reached (${limits.maxGenerationsPerDay}/day). Upgrade your plan for more.` },
-        { status: 429 }
-      );
+      const { count: dailyCount } = await supabaseAdmin
+        .from("generations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString());
+
+      if ((dailyCount || 0) >= limits.maxGenerationsPerDay) {
+        return NextResponse.json(
+          { error: `Daily limit reached (${limits.maxGenerationsPerDay}/day). Resets at midnight.` },
+          { status: 429 }
+        );
+      }
     }
 
     // Server-side script length enforcement

@@ -2,7 +2,8 @@
 export const FREE_VOICE_IDS = ["sarah", "jessica", "adam", "brian", "daniel", "river"];
 
 export const FREE_LIMITS = {
-  maxGenerationsPerDay: 5,
+  maxGenerationsTotal: 5, // lifetime limit
+  maxGenerationsPerDay: Infinity, // no daily limit (lifetime handles it)
   maxScriptLength: 500,
   maxVoiceClones: 0,
   allowedLanguages: ["en"],
@@ -12,6 +13,7 @@ export const FREE_LIMITS = {
 };
 
 export const PRO_LIMITS = {
+  maxGenerationsTotal: Infinity,
   maxGenerationsPerDay: 50,
   maxScriptLength: 5000,
   maxVoiceClones: 1,
@@ -22,6 +24,7 @@ export const PRO_LIMITS = {
 };
 
 export const BUSINESS_LIMITS = {
+  maxGenerationsTotal: Infinity,
   maxGenerationsPerDay: 200,
   maxScriptLength: 10000,
   maxVoiceClones: 5,

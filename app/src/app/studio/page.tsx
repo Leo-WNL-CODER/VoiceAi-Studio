@@ -24,7 +24,8 @@ export default function StudioPage() {
 
   // Plan state
   const [tier, setTier] = useState("free");
-  const [generationsToday, setGenerationsToday] = useState(0);
+  const [generationsUsed, setGenerationsUsed] = useState(0);
+  const [generationsLimit, setGenerationsLimit] = useState(5);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState("");
 
@@ -43,7 +44,8 @@ export default function StudioPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.tier) setTier(data.tier);
-        if (typeof data.generationsToday === "number") setGenerationsToday(data.generationsToday);
+        if (typeof data.generationsUsed === "number") setGenerationsUsed(data.generationsUsed);
+        if (typeof data.generationsLimit === "number") setGenerationsLimit(data.generationsLimit);
       })
       .catch(() => {});
   }, []);
@@ -90,8 +92,8 @@ export default function StudioPage() {
     if (!script.trim()) return;
 
     // Free tier: check generation limit
-    if (!isPro && generationsToday >= limits.maxGenerationsPerDay) {
-      promptUpgrade("Unlimited generations");
+    if (!isPro && generationsUsed >= generationsLimit) {
+      promptUpgrade("More generations");
       return;
     }
 
@@ -156,7 +158,7 @@ export default function StudioPage() {
 
       setStatusText(`Audio ready! Playing with ${selectedVoice.name}...`);
       setIsGenerating(false);
-      setGenerationsToday((prev) => prev + 1);
+      setGenerationsUsed((prev) => prev + 1);
 
       audio.play();
       setIsPlaying(true);
@@ -262,14 +264,14 @@ export default function StudioPage() {
           {/* Plan Badge */}
           {isPro ? (
             <span className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-pink-500 text-white">
-              {tier === "business" ? "Business" : "Pro"} ({generationsToday}/{limits.maxGenerationsPerDay} today)
+              {tier === "business" ? "Business" : "Pro"} ({generationsUsed}/{generationsLimit} today)
             </span>
           ) : (
             <button
               onClick={() => promptUpgrade("Pro features")}
               className="px-3 py-1 rounded-full text-xs font-medium bg-surface border border-border text-muted hover:text-primary hover:border-primary/30 transition-all"
             >
-              Free ({generationsToday}/{limits.maxGenerationsPerDay} today)
+              Free ({generationsUsed}/{generationsLimit} total)
             </button>
           )}
           {isPro && <VoiceRecorder />}
@@ -304,7 +306,7 @@ export default function StudioPage() {
               <div>
                 <p className="text-sm font-medium">You&apos;re on the Free plan</p>
                 <p className="text-xs text-muted mt-0.5">
-                  {limits.maxGenerationsPerDay - generationsToday} generations left today | 6 voices | English only | {limits.maxScriptLength} chars max
+                  {generationsLimit - generationsUsed} generations left (lifetime) | 6 voices | English only | {limits.maxScriptLength} chars max
                 </p>
               </div>
               <button

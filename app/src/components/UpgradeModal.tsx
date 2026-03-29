@@ -42,7 +42,7 @@ export default function UpgradeModal({ show, onClose, feature }: UpgradeModalPro
             </div>
             <div className="space-y-1.5">
               {[
-                "5 generations/day",
+                "5 generations total",
                 "6 AI voices",
                 "English only",
                 "500 char limit",
